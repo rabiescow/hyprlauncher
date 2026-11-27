@@ -1,16 +1,17 @@
 #include "UI.hpp"
 #include "ResultButton.hpp"
 
+#include "../config/ConfigManager.hpp"
 #include "../finders/desktop/DesktopFinder.hpp"
+#include "../helpers/Log.hpp"
+#include "../i18n/Engine.hpp"
 #include "../query/QueryProcessor.hpp"
 #include "../socket/ServerSocket.hpp"
-#include "../helpers/Log.hpp"
-#include "../config/ConfigManager.hpp"
-#include "../i18n/Engine.hpp"
 
+#include <algorithm>
+#include <hyprtoolkit/core/Input.hpp>
 #include <hyprutils/string/String.hpp>
 #include <xkbcommon/xkbcommon-keysyms.h>
-#include <algorithm>
 
 using namespace Hyprutils::Math;
 using namespace Hyprutils::String;
@@ -37,13 +38,22 @@ CUI::CUI(bool open) : m_openByDefault(open) {
 
     m_inputBox = Hyprtoolkit::CTextboxBuilder::begin()
                      ->placeholder(I18n::localize(I18n::TXT_KEY_SEARCH_SOMETHING, {}))
-                     ->onTextEdited([this](SP<Hyprtoolkit::CTextboxElement>, const std::string& query) { scheduleQueryUpdate(query); })
+                     ->onTextEdited([this](SP<Hyprtoolkit::CTextboxElement> box, const std::string& query) {
+                         if (m_suppressNextTextEdit) {
+                             m_suppressNextTextEdit = false;
+                             box->setText(m_lastValidQuery);
+                             return;
+                         }
+                         m_lastValidQuery = query;
+                         scheduleQueryUpdate(query);
+                     })
                      ->size({Hyprtoolkit::CDynamicSize::HT_SIZE_PERCENT, Hyprtoolkit::CDynamicSize::HT_SIZE_ABSOLUTE, {1.F, 28.F}})
                      ->multiline(false)
                      ->commence();
 
-    // Measure a line independently of the textbox's constrained height. The text
-    // callback also runs after theme/scale changes, without resetting the query.
+    // Measure a line independently of the textbox's constrained height. The
+    // text callback also runs after theme/scale changes, without resetting the
+    // query.
     auto inputMetrics = Hyprtoolkit::CTextBuilder::begin()
                             ->text("Mg")
                             ->a(0.F)
@@ -56,15 +66,14 @@ CUI::CUI(bool open) : m_openByDefault(open) {
             if (!metrics || !input)
                 return;
 
-            // Four logical pixels of padding above and below the rendered line.
+            // Four logical pixels of padding above and below the
+            // rendered line.
             const auto HEIGHT = std::max(28.0, metrics->size().y + 8.0);
             if (HEIGHT == lastHeight)
                 return;
 
             lastHeight = HEIGHT;
-            input->rebuild()
-                ->size({Hyprtoolkit::CDynamicSize::HT_SIZE_PERCENT, Hyprtoolkit::CDynamicSize::HT_SIZE_ABSOLUTE, {1.F, HEIGHT}})
-                ->commence();
+            input->rebuild()->size({Hyprtoolkit::CDynamicSize::HT_SIZE_PERCENT, Hyprtoolkit::CDynamicSize::HT_SIZE_ABSOLUTE, {1.F, HEIGHT}})->commence();
         })
         ->commence();
     m_background->addChild(inputMetrics);
@@ -109,16 +118,19 @@ CUI::CUI(bool open) : m_openByDefault(open) {
     m_window->m_events.keyboardKey.listenStatic([this](Hyprtoolkit::Input::SKeyboardKeyEvent e) {
         if (!e.down)
             return;
+        const bool hasSuper = (e.modMask & Hyprtoolkit::Input::HT_MODIFIER_META) != 0;
 
         if (e.xkbKeysym == XKB_KEY_Escape)
             setWindowOpen(false);
-        else if (e.xkbKeysym == XKB_KEY_Down) {
+        else if (e.xkbKeysym == XKB_KEY_Down || (hasSuper && (e.xkbKeysym == XKB_KEY_j || e.xkbKeysym == XKB_KEY_J))) {
             if (m_activeElementId + 1 < m_currentResults.size())
                 m_activeElementId++;
+            m_suppressNextTextEdit = true;
             updateActive();
-        } else if (e.xkbKeysym == XKB_KEY_Up) {
+        } else if (e.xkbKeysym == XKB_KEY_Up || (hasSuper && (e.xkbKeysym == XKB_KEY_k || e.xkbKeysym == XKB_KEY_K))) {
             if (m_activeElementId > 0)
                 m_activeElementId--;
+            m_suppressNextTextEdit = true;
             updateActive();
         } else if (e.xkbKeysym == XKB_KEY_Return || e.xkbKeysym == XKB_KEY_KP_Enter)
             onSelected();

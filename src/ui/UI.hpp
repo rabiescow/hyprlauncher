@@ -1,20 +1,21 @@
 #pragma once
 
 #include <hyprtoolkit/core/Backend.hpp>
-#include <hyprtoolkit/window/Window.hpp>
-#include <hyprtoolkit/element/Rectangle.hpp>
-#include <hyprtoolkit/element/Text.hpp>
-#include <hyprtoolkit/element/ColumnLayout.hpp>
-#include <hyprtoolkit/element/RowLayout.hpp>
-#include <hyprtoolkit/element/Null.hpp>
 #include <hyprtoolkit/element/Button.hpp>
+#include <hyprtoolkit/element/ColumnLayout.hpp>
+#include <hyprtoolkit/element/Null.hpp>
+#include <hyprtoolkit/element/Rectangle.hpp>
+#include <hyprtoolkit/element/RowLayout.hpp>
 #include <hyprtoolkit/element/ScrollArea.hpp>
+#include <hyprtoolkit/element/Text.hpp>
 #include <hyprtoolkit/element/Textbox.hpp>
+#include <hyprtoolkit/window/Window.hpp>
 
 #include <hyprtoolkit/system/Icons.hpp>
+#include <string>
 
-#include "../helpers/Memory.hpp"
 #include "../finders/IFinder.hpp"
+#include "../helpers/Memory.hpp"
 
 class CResultButton;
 
@@ -50,12 +51,14 @@ class CUI {
 
     std::vector<SFinderResult>            m_currentResults;
     std::vector<SP<CResultButton>>        m_resultButtons;
+    std::string                           m_lastValidQuery;
 
-    bool                                  m_open            = false;
-    bool                                  m_openByDefault   = true;
-    bool                                  m_queryPending    = false;
-    bool                                  m_activateOnQuery = false;
-    size_t                                m_activeElementId = 0;
+    bool                                  m_suppressNextTextEdit = false;
+    bool                                  m_open                 = false;
+    bool                                  m_openByDefault        = true;
+    bool                                  m_queryPending         = false;
+    bool                                  m_activateOnQuery      = false;
+    size_t                                m_activeElementId      = 0;
 
     friend class CQueryProcessor;
     friend class CResultButton;
