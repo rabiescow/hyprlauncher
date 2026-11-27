@@ -44,7 +44,7 @@ CConfigManager::CConfigManager(const std::string& configPath) : m_inotifyFd(inot
     m_config->addConfigValue("finders:desktop_terminal", Hyprlang::STRING{""});
     m_config->addConfigValue("finders:desktop_icons", Hyprlang::INT{1});
 
-    m_config->addConfigValue("ui:window_size", Hyprlang::VEC2{800, 600});
+    m_config->addConfigValue("ui:window_size", Hyprlang::VEC2{400, 260});
 
     m_config->commence();
 
